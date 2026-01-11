@@ -1,0 +1,18 @@
+# Dependencies
+node_modules
+
+# Builds / outputs
+dist
+dist-ssr
+.vercel
+
+# Local caches & logs
+.npm-cache
+.turbo
+*.log
+
+# Env / editor
+.env
+.env.*
+.DS_Store
+.vscode
