@@ -376,7 +376,7 @@ export default function App() {
               isDragOver ? "border-emerald-400/80" : "border-slate-800/80"
             } ${
               isPseudoFullscreen
-                ? "fixed inset-0 z-50 m-0 aspect-auto h-[100dvh] w-screen rounded-none border-0 bg-slate-950 p-4"
+                ? "fixed inset-0 z-50 m-0 aspect-auto h-[100dvh] w-screen rounded-none border-0 bg-slate-950 p-4 overflow-auto touch-pan-y"
                 : ""
             }`}
             style={
@@ -411,6 +411,15 @@ export default function App() {
               <div className="absolute right-3 top-3 rounded-full bg-slate-900/70 px-3 py-1 text-xs text-slate-200">
                 {currentIndex + 1} / {images.length}
               </div>
+            )}
+            {isPseudoFullscreen && (
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                className="fixed right-4 top-4 z-50 rounded-full bg-slate-900/80 px-4 py-2 text-sm font-semibold text-slate-100 shadow-lg backdrop-blur hover:bg-slate-800"
+              >
+                Exit Full
+              </button>
             )}
           </div>
 
