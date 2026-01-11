@@ -23,6 +23,10 @@ export default function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const [isFullscreenSupported, setIsFullscreenSupported] = useState(true);
+  const isiOS = useMemo(
+    () => /iP(hone|od|ad)/.test(globalThis.navigator?.platform ?? "") || /Mac/.test(globalThis.navigator?.userAgent ?? "") && "ontouchend" in document,
+    [],
+  );
 
   const timeoutRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -308,18 +312,34 @@ export default function App() {
     const target = playerContainerRef.current;
     if (!target) return;
     const active = isFullscreen || isPseudoFullscreen;
-    if (!isFullscreenSupported) {
+
+    // iOS SafariはFullscreen APIが基本的に非対応なので疑似フルスクリーンへフォールバック
+    if (!isFullscreenSupported || isiOS) {
       setIsPseudoFullscreen(!active);
       return;
     }
+
     try {
       if (!document.fullscreenElement) {
-        await target.requestFullscreen();
+        const el = target as HTMLElement & {
+          webkitRequestFullscreen?: () => Promise<void>;
+          msRequestFullscreen?: () => Promise<void>;
+        };
+        if (el.requestFullscreen) {
+          await el.requestFullscreen();
+        } else if (el.webkitRequestFullscreen) {
+          await el.webkitRequestFullscreen();
+        } else if (el.msRequestFullscreen) {
+          await el.msRequestFullscreen();
+        } else {
+          setIsPseudoFullscreen(!active);
+        }
       } else {
         await document.exitFullscreen();
       }
     } catch (err) {
       console.error("Fullscreen toggle failed", err);
+      setIsPseudoFullscreen(!active);
     }
   };
 
@@ -354,7 +374,21 @@ export default function App() {
             ref={playerContainerRef}
             className={`glass-panel relative flex aspect-video cursor-pointer items-center justify-center overflow-hidden border transition ${
               isDragOver ? "border-emerald-400/80" : "border-slate-800/80"
-            } ${isPseudoFullscreen ? "fixed inset-0 z-50 m-0 aspect-auto h-full w-full rounded-none border-0 bg-slate-950 p-4" : ""}`}
+            } ${
+              isPseudoFullscreen
+                ? "fixed inset-0 z-50 m-0 aspect-auto h-[100dvh] w-screen rounded-none border-0 bg-slate-950 p-4"
+                : ""
+            }`}
+            style={
+              isPseudoFullscreen
+                ? {
+                    paddingTop: "env(safe-area-inset-top)",
+                    paddingBottom: "env(safe-area-inset-bottom)",
+                    paddingLeft: "env(safe-area-inset-left)",
+                    paddingRight: "env(safe-area-inset-right)",
+                  }
+                : undefined
+            }
             onClick={openFileDialog}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
