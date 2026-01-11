@@ -21,6 +21,8 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
+  const [isFullscreenSupported, setIsFullscreenSupported] = useState(true);
 
   const timeoutRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -100,6 +102,17 @@ export default function App() {
   }, [images]);
 
   useEffect(() => {
+    const elem = document.documentElement as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void>;
+      msRequestFullscreen?: () => Promise<void>;
+    };
+    const supported =
+      Boolean(document.fullscreenEnabled) ||
+      Boolean(elem.requestFullscreen) ||
+      Boolean(elem.webkitRequestFullscreen) ||
+      Boolean(elem.msRequestFullscreen);
+    setIsFullscreenSupported(supported);
+
     const handler = () => setIsFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", handler);
     return () => document.removeEventListener("fullscreenchange", handler);
@@ -283,9 +296,22 @@ export default function App() {
     setCurrentIndex(0);
   };
 
+  useEffect(() => {
+    if (isPseudoFullscreen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [isPseudoFullscreen]);
+
   const toggleFullscreen = async () => {
     const target = playerContainerRef.current;
     if (!target) return;
+    const active = isFullscreen || isPseudoFullscreen;
+    if (!isFullscreenSupported) {
+      setIsPseudoFullscreen(!active);
+      return;
+    }
     try {
       if (!document.fullscreenElement) {
         await target.requestFullscreen();
@@ -296,6 +322,8 @@ export default function App() {
       console.error("Fullscreen toggle failed", err);
     }
   };
+
+  const fullscreenActive = isFullscreen || isPseudoFullscreen;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
@@ -326,7 +354,7 @@ export default function App() {
             ref={playerContainerRef}
             className={`glass-panel relative flex aspect-video cursor-pointer items-center justify-center overflow-hidden border transition ${
               isDragOver ? "border-emerald-400/80" : "border-slate-800/80"
-            }`}
+            } ${isPseudoFullscreen ? "fixed inset-0 z-50 m-0 aspect-auto h-full w-full rounded-none border-0 bg-slate-950 p-4" : ""}`}
             onClick={openFileDialog}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -383,9 +411,13 @@ export default function App() {
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:border-slate-500"
+                className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
+                  fullscreenActive
+                    ? "border-emerald-400 text-emerald-200"
+                    : "border-slate-700 text-slate-100 hover:border-slate-500"
+                } ${isFullscreenSupported ? "" : "opacity-80"}`}
               >
-                {isFullscreen ? "Exit Full" : "Fullscreen"}
+                {fullscreenActive ? "Exit Full" : isFullscreenSupported ? "Fullscreen" : "Fill Screen"}
               </button>
             </div>
 
