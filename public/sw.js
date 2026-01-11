@@ -1,4 +1,4 @@
-const CACHE_NAME = "image-loop-player-v1";
+const CACHE_NAME = "image-loop-player-v3";
 const ASSETS = ["/", "/index.html", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
